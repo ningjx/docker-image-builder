@@ -1,0 +1,33 @@
+name: Docker Build and Push
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Docker Hub Login
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and Push Docker Images
+        run: |
+          find . -name Dockerfile -printf '%h\n' | sort -u | while read dir; do
+            FOLDER_NAME=$(basename "$dir" | tr '[:upper:]' '[:lower:]')
+            IMAGE_NAME="ningjx/$FOLDER_NAME:latest"
+            
+            echo "Building $IMAGE_NAME from $dir"
+            docker build --file "$dir/Dockerfile" --tag "$IMAGE_NAME" "$dir"
+            
+            echo "Pushing $IMAGE_NAME"
+            docker push "$IMAGE_NAME"
+          done
